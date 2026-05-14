@@ -5,48 +5,78 @@ const app = express();
 app.use(express.json());
 
 app.post('/heparin', (req, res) => {
-    const utterance = req.body.userRequest.utterance.trim().toUpperCase();
+
+    const utterance = req.body.userRequest.utterance
+        .trim()
+        .toUpperCase();
 
     let protocol = '';
     let weight = 0;
 
-    if (utterance.startsWith('MI-')) {
-        protocol = 'MI';
-        weight = Number(utterance.replace('MI-', ''));
-    } else if (utterance.startsWith('DVT-')) {
-        protocol = 'DVT';
-        weight = Number(utterance.replace('DVT-', ''));
+    // 숫자 추출
+    const numberMatch = utterance.match(/[0-9.]+/);
+
+    if (numberMatch) {
+        weight = Number(numberMatch[0]);
     }
 
-    if (!protocol || !weight || isNaN(weight)) {
+    // 프로토콜 확인
+    if (utterance.includes('MI')) {
+        protocol = 'MI';
+    }
+
+    if (utterance.includes('DVT')) {
+        protocol = 'DVT';
+    }
+
+    // 오류 처리
+    if (!protocol || !weight) {
+
         return res.json({
             version: "2.0",
             template: {
                 outputs: [
                     {
                         simpleText: {
-                            text: "입력 형식이 올바르지 않습니다.\n\n예시:\nMI-60\nDVT-60"
+                            text:
+`입력 예시
+
+MI 60
+DVT 70`
                         }
                     }
                 ]
             }
         });
+
     }
 
     let bolus = 0;
     let infusion = 0;
 
+    // MI
     if (protocol === 'MI') {
+
         bolus = weight * 60;
-        if (bolus > 4000) bolus = 4000;
+
+        if (bolus > 4000) {
+            bolus = 4000;
+        }
 
         infusion = weight * 12;
-        if (infusion > 1000) infusion = 1000;
+
+        if (infusion > 1000) {
+            infusion = 1000;
+        }
+
     }
 
+    // DVT
     if (protocol === 'DVT') {
+
         bolus = weight * 80;
         infusion = weight * 18;
+
     }
 
     const mlhr = (infusion / 50).toFixed(1);
@@ -62,7 +92,7 @@ ${bolus} units IV
 Initial infusion:
 ${infusion} units/hr
 
-${mlhr} ml/hr`;
+(${mlhr} ml/hr)`;
 
     res.json({
         version: "2.0",
@@ -76,6 +106,7 @@ ${mlhr} ml/hr`;
             ]
         }
     });
+
 });
 
 app.get('/', (req, res) => {
