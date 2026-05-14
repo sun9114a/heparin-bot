@@ -6,19 +6,13 @@ app.use(express.json());
 
 app.post('/heparin', (req, res) => {
 
-    const weight = Number(req.body.userRequest.utterance);
+    const utterance = req.body.userRequest.utterance.trim();
 
-    const contexts = req.body.contexts || [];
+    const parts = utterance.split(' ');
 
-    let protocol = '';
+    const protocol = parts[0].toUpperCase();
 
-    contexts.forEach(c => {
-
-        if (c.name === 'protocol') {
-
-            protocol = c.params.type.value;
-        }
-    });
+    const weight = Number(parts[1]);
 
     let bolus = 0;
     let infusion = 0;
@@ -71,6 +65,10 @@ ${infusion} units/hr
         }
     });
 
+});
+
+app.get('/', (req, res) => {
+    res.send('heparin bot server running');
 });
 
 const PORT = process.env.PORT || 3000;
